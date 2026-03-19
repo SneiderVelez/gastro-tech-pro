@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: GastroTech Pro API
+  description: Contrato de API para la aplicación de gestión de restaurantes GastroTech Pro.
+  version: 1.0.0
+servers:
+  - url: /api
+paths:
+  /mesas:
+    get:
+      summary: Obtiene el listado de mesas del local
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mesa'
+  /menu:
+    get:
+      summary: Obtiene el catálogo de productos y combos
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemMenu'
+  /reservas:
+    get:
+      summary: Obtiene las reservas actuales
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Reserva'
+    post:
+      summary: Crea una nueva reserva
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cliente, mesaId, fechaHora, personas]
+              properties:
+                cliente:
+                  type: string
+                mesaId:
+                  type: string
+                fechaHora:
+                  type: string
+                  format: date-time
+                personas:
+                  type: integer
+      responses:
+        '201':
+          description: Reserva Creada
+        '400':
+          description: Bad Request (Capacidad Insuficiente)
+        '409':
+          description: Conflict (Mesa ya reservada)
+  /comandas/{id}:
+    patch:
+      summary: Actualiza el estado de una orden en cocina
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nuevoEstado:
+                  type: string
+                  enum: [cocina, listo, entregado]
+      responses:
+        '200':
+          description: Estado actualizado
+        '400':
+          description: Transición inválida
+  /pagos:
+    post:
+      summary: Procesa el pago de una comanda
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comandaId, metodo]
+              properties:
+                comandaId:
+                  type: string
+                metodo:
+                  type: string
+                  enum: [efectivo, tarjeta, cripto]
+      responses:
+        '200':
+          description: Pago exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaccionId:
+                    type: string
+                  totalConComision:
+                    type: number
+                  estado:
+                    type: string
+
+components:
+  schemas:
+    Mesa:
+      type: object
+      properties:
+        id:
+          type: string
+        numero:
+          type: integer
+        capacidad:
+          type: integer
+        zona:
+          type: string
+          enum: [Terraza, VIP, Salón]
+        estado:
+          type: string
+          enum: [disponible, ocupada, reservada, sucia]
+          
+    Producto:
+      type: object
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        precio:
+          type: number
+        tipo:
+          type: string
+          enum: [simple]
+    Combo:
+      type: object
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        precio:
+          type: number
+        tipo:
+          type: string
+          enum: [combo]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemMenu'
+    ItemMenu:
+      oneOf:
+        - $ref: '#/components/schemas/Producto'
+        - $ref: '#/components/schemas/Combo'
+        
+    Reserva:
+      type: object
+      properties:
+        id:
+          type: string
+        cliente:
+          type: string
+        mesaId:
+          type: string
+        fechaHora:
+          type: string
+          format: date-time
+        personas:
+          type: integer
